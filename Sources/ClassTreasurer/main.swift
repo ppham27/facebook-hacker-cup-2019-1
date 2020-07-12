@@ -3,7 +3,7 @@ enum Vote {
     case Betty
 }
 
-// The general strategy is to reduce the height of the random walk.
+// Strategy is to reduce the height of the random walk until it is at most K.
 func payMinimally(N: Int, K: Int, votes: [Vote], mod: Int = 1000000007) -> Int {
     // Get the index and how much Amy is losing by at each Betty vote.
     let bettyVotes = votes.enumerated()
@@ -15,15 +15,16 @@ func payMinimally(N: Int, K: Int, votes: [Vote], mod: Int = 1000000007) -> Int {
            while cost.count < count { cost.append((2 * (cost.last ?? 1)) % mod) }
            return cost
        })(votes.count)
-    var (totalCost, maxScore) = (0, -N)
-    for bettyVote in bettyVotes.reversed() {
-        // Reset when a new peak is found. Flips no longer apply.
-        if bettyVote.score >= maxScore { maxScore = bettyVote.score }
-        if maxScore - bettyVote.score == K {  // Flip as soon as Amy loses.
-            totalCost = (totalCost + cost[bettyVote.offset]) % mod
-            maxScore -= 2  // We're changing a +1 to a -1.
-        }
-    }
+    let (totalCost, _) = bettyVotes.reversed().reduce(
+      (totalCost: 0, maxScore: -N),
+      { (state: (totalCost: Int, maxScore: Int), bettyVote: (offset: Int, score: Int)) in
+          // Reset when a new peak is found. Flips no longer apply.
+          let maxScore = max(bettyVote.score, state.maxScore)
+          // Flip as soon as Amy loses. We're changing a +1 to a -1 so minus 2.
+          return maxScore - bettyVote.score == K ?
+            ((state.totalCost + cost[bettyVote.offset]) % mod, maxScore - 2) :
+            (state.totalCost, maxScore)
+      })
     return totalCost
 }
 
